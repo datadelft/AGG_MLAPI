@@ -23,6 +23,7 @@ public class PlayerMovement : NetworkedBehaviour  // use networkedbehavior, that
         else // if we are the local player
         {
             cc = GetComponent<CharacterController>(); // get the charactercontroller reference
+            Cursor.lockState = CursorLockMode.Locked;
         }
 
     }
