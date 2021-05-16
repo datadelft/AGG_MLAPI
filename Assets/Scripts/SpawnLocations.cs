@@ -9,13 +9,15 @@ public class SpawnLocations : MonoBehaviour
 
     void Start()
     {
-        if (spawnPoint == null)
+        if (spawnPoint.Length == 0)
             spawnPoint = GameObject.FindGameObjectsWithTag("spawnPoint");
 
         //foreach (GameObject spawn in spawnPoint)
         //{
         //    Instantiate(respawnPrefab, respawn.transform.position, respawn.transform.rotation);
         //}
+
+
     }
 
 }

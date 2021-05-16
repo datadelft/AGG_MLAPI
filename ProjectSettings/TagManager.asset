@@ -5,6 +5,11 @@ TagManager:
   serializedVersion: 2
   tags:
   - spawnPoint
+  - spawnPointManager
+  - txt_velocity
+  - FxTemporaire
+  - rightHandTarget
+  - leftHandTarget
   layers:
   - Default
   - TransparentFX

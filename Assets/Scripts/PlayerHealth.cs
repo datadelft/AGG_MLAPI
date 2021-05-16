@@ -1,15 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using MLAPI;
+using MLAPI; // use networking 
 using MLAPI.NetworkedVar;
 using MLAPI.Messaging;
 
-public class PlayerHealth : NetworkedBehaviour
+public class PlayerHealth : NetworkedBehaviour // use networkedbehavior, that is extending monobehaviour!
 {
-    public GameObject[] spawnPoints;
+    private SpawnLocations spawnPointLocationsScript;
     CharacterController cc;
     MeshRenderer[] meshRenderers;
+    SkinnedMeshRenderer[] skinnedMeshRenderers;
+    private AudioSource playerAudio;
 
     [SerializeField]
     static float maxHealth = 100f;
@@ -19,9 +21,11 @@ public class PlayerHealth : NetworkedBehaviour
 
      void Start()
     {
+        playerAudio = GetComponent<AudioSource>();
         cc = GetComponent<CharacterController>();
         meshRenderers = GetComponentsInChildren<MeshRenderer>();
-        spawnPoints = GameObject.FindGameObjectsWithTag("spawnPoint");
+        skinnedMeshRenderers = GetComponentsInChildren<SkinnedMeshRenderer>();
+        spawnPointLocationsScript = GameObject.FindGameObjectWithTag("spawnPointManager").GetComponent<SpawnLocations>();
     }
 
     // remember this is running on the server, as it is called trough serverRPC
@@ -31,19 +35,33 @@ public class PlayerHealth : NetworkedBehaviour
         // chech health state 
         if (health.Value <= 0) // we're death,
         {
-            // do death anim (trough rpc i gues)
+            // do death anim (trough rpc i guess, to sync over the network to other clients)
+            //
+            //
 
-            // reset health
+            // do au or death sound
+            //playerAudio.PlayOneShot(clip);
+
+            // reset health 
             health.Value = maxHealth;
 
+            // check our list of renderers, this could have been changed due to inventory changes
+            meshRenderers = GetComponentsInChildren<MeshRenderer>();
+            skinnedMeshRenderers = GetComponentsInChildren<SkinnedMeshRenderer>();
+
+
             // respawn (trough client rpc)
-            int index = Random.Range(0, spawnPoints.Length);
-            Vector3 spawnPos = spawnPoints[index].transform.position; // set respawn location to the position of a random spawnpoint gameobject
+            Vector3 spawnPos = Vector3.zero; // if no spawnpoints found, send vector3.zero as alternate spawnpoint
+            if (spawnPointLocationsScript && spawnPointLocationsScript.spawnPoint.Length != 0) // if spawnpoints are registered in the map, return a random one. If not, use vector3.zero as spawn.
+            {
+                int index = Random.Range(0, spawnPointLocationsScript.spawnPoint.Length);
+                spawnPos = spawnPointLocationsScript.spawnPoint[index].transform.position; // set respawn location to the position of a random spawnpoint gameobject
+            }
             InvokeClientRpcOnEveryone(ClientRespawn, spawnPos);
         }
     }
 
-    [ClientRPC]
+    [ClientRPC] // distrubute over the network
     void ClientRespawn(Vector3 position)
     {
         
@@ -56,16 +74,23 @@ public class PlayerHealth : NetworkedBehaviour
         foreach (var renderer in meshRenderers)
         {
             renderer.enabled = false;
+            //also disable the hitbox/colliders?
+        }
+        foreach (var renderer in skinnedMeshRenderers)
+        {
+            renderer.enabled = false;
+            //also disable the hitbox/colliders?
         }
 
         // disable shooting script and movement script
         //
-
-        // delay
-        yield return new WaitForSeconds(1f);
+        // 2do
 
         // disable charactercontroller
         cc.enabled = false;
+
+        // delay
+        yield return new WaitForSeconds(1f);
 
         // set position to the chosen respawn position
         transform.position = position;
@@ -75,9 +100,14 @@ public class PlayerHealth : NetworkedBehaviour
         {
             renderer.enabled = true;
         }
+        foreach (var renderer in skinnedMeshRenderers)
+        {
+            renderer.enabled = true;
+        }
 
         // enable shooting script and movement script
         //
+        // 2do
 
         // enable charactercontroller
         cc.enabled = true;
